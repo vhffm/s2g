@@ -48,7 +48,8 @@ class ShapeGraph(object):
                  coord_type='lonlat', point_buffer=10e-5, properties=list(),
                  geom_count=None, direct_graph=False):
         """
-        Declare and/or construct a graph from a shapefile
+        Declare and/or construct a graph from a shapefile.
+        Reproject shapefile coordinates to EPSG:4326 (WGS84) if neccessary.
         :param geoms: input1, a list of shapely::LineString objects or (lon, lat) coordinates sequence
         :param shapefile: input2, path to shapefile; supported formats are consistent with fiona::open()
         :param to_graph: boolean, indicates if constructing the graph during initialization
@@ -67,6 +68,9 @@ class ShapeGraph(object):
 
         if shapefile is not None:
             with fiona.open(shapefile) as source:
+                if not source.crs['init'] == 'epsg:4326':
+                    logging.info("Reprojecting (%s --> EPSG:4326)." % \
+                                 source.crs['init'].upper())
                 for r in source:
                     s = shape(r['geometry'])
                     if s.geom_type == 'LineString':
@@ -74,6 +78,14 @@ class ShapeGraph(object):
                         for p in properties:
                             props[p] = r['properties'][p]
                         self._line_props[len(self.geoms)] = props
+                        if not source.crs['init'] == 'epsg:4326':
+                            coords = np.array(s.coords)
+                            x_out, y_out = \
+                                _reproject(coords[:,0], \
+                                           coords[:,1], \
+                                           srs_in=source.crs, \
+                                           srs_out={'init': 'epsg:4326'})
+                            s.coords = zip(x_out,y_out)
                         self.geoms.append(s)
                         # for debugging
                         if geom_count is not None and len(self.geoms) == geom_count:

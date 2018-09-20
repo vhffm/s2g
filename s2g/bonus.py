@@ -2,11 +2,12 @@
 # encoding: utf-8
 import numpy as np
 from shapely.geometry import Point, box, Polygon, MultiPoint
+import pyproj
 
 __all__ = ['plot_lines', 'great_circle_dist', 'gcd', 'perpend_to_line',
            'box_overlay', 'bounded_segments', 'line_distance',
            'line_contains_point', 'lines_touch', 'point_projects_to_line',
-           'cut_line', 'distance_to_buffer']
+           'cut_line', 'distance_to_buffer', '_reproject']
 
 
 def plot_lines(lines, **kwargs):
@@ -198,3 +199,26 @@ def cut_line_with_context(line):
     """
     assert line.geom_type == 'LineString'
     pass
+
+
+def _reproject(x_in, y_in, srs_in, srs_out={'init': 'epsg:4326'}):
+    """
+    Harmonize srs/crs (spatial/coordinate reference system).
+
+    :param x_in: a numpy array of x coordinates
+    :param y_in: a numpy array of y coordinates
+    :param srs_in: dict for input srs, e.g. { 'init': 'epsg:25832' } (UTM32N)
+    :param srs_out: dict for output srs, e.g. { 'init': 'epsg:4326' } (WGS84)
+    :return x_out: numpy array of reprojected x coordinates
+    :return y_out: numpy array of reprojected y coordinates
+
+    NB: If `s = fiona.open(shapefile)`, you can pass `s.crs` as `srs_in`.
+    NB: If `srs_out` is EPSG:4326 (WGS84), (x_out,y_out) are (lon,lat).
+    """
+    # srs_src = pyproj.Proj(init=source.src)
+    # srs_dst = pyproj.Proj(init="epsg:25832") # UTM32N
+    # srs_dst = pyproj.Proj(init="epsg:4326")  # WGS84
+    srs_src = pyproj.Proj(srs_in)
+    srs_dst = pyproj.Proj(srs_out)
+    x_out, y_out = pyproj.transform(srs_src, srs_dst, x_in, y_in)
+    return x_out, y_out

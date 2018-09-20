@@ -19,6 +19,7 @@ setup(
         'fiona',
         'shapely',
         'networkx',
+        'pyproj',
         'numpy'
       ],
     classifiers = [
