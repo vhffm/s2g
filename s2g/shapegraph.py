@@ -7,7 +7,6 @@ from itertools import product
 
 import fiona
 import networkx as nx
-import progressbar
 from shapely.geometry import shape, Point, LineString, box, Polygon
 
 from .bonus import *
@@ -259,12 +258,10 @@ class ShapeGraph(object):
         logging.info("Validating pair-wise line connections of raw shapefiles (total {0} lines)".format(L))
 
         neighbors = [(i, j) for i, j in product(range(0, L), range(0, L)) if j > i]
-        with progressbar.ProgressBar(max_value=len(neighbors)) as bar:
-            for k in range(0, len(neighbors)):
-                bar.update(k + 1)
-                i, j = neighbors[k]
-                if self.validate_pairwise_connectivity(i, j):
-                    graph.add_edge(i, j)
+        for k in range(0, len(neighbors)):
+            i, j = neighbors[k]
+            if self.validate_pairwise_connectivity(i, j):
+                graph.add_edge(i, j)
 
         # Validate lines connectivity:
         # Pairs of lines which are connected (touched). These line pairs
@@ -315,25 +312,23 @@ class ShapeGraph(object):
 
         # do line cutting
         logging.info('Cutting lines with specific resolution = {0} km'.format(self.resolution))
-        with progressbar.ProgressBar(max_value=len(major)) as bar:
-            for i in range(len(major)):
-                bar.update(i + 1)
-                line_index = major[i]
-                line = self.geoms[line_index]
-                coords = list(line.coords)
-                intersects = self.line_cuts(line_index)
-                cuts, dist = cut_line(line, self.resolution, intersects if intersects else set())
+        for i in range(len(major)):
+            line_index = major[i]
+            line = self.geoms[line_index]
+            coords = list(line.coords)
+            intersects = self.line_cuts(line_index)
+            cuts, dist = cut_line(line, self.resolution, intersects if intersects else set())
 
-                # record cut-line info
-                [self._update_cut(line_index, c) for c in cuts]
+            # record cut-line info
+            [self._update_cut(line_index, c) for c in cuts]
 
-                # record edges info
-                for j in range(1, len(cuts)):
-                    scut = cuts[j - 1]
-                    ecut = cuts[j]
-                    self._register_edge((coords[scut], coords[ecut]),
-                                        dist[j], coords[scut:ecut + 1],
-                                        line_index, (scut, ecut))
+            # record edges info
+            for j in range(1, len(cuts)):
+                scut = cuts[j - 1]
+                ecut = cuts[j]
+                self._register_edge((coords[scut], coords[ecut]),
+                                    dist[j], coords[scut:ecut + 1],
+                                    line_index, (scut, ecut))
 
         logging.info('Adding pseudo edges to eliminate gaps between edges')
         for pair in self._pseudo_edges:

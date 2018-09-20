@@ -19,8 +19,7 @@ setup(
         'fiona',
         'shapely',
         'networkx',
-        'numpy',
-        'progressbar2'
+        'numpy'
       ],
     classifiers = [
         'Development Status :: 4 - Beta',
